@@ -12,6 +12,8 @@
 #define LOGI(FORMAT,...) __android_log_print(ANDROID_LOG_INFO,"DLM",FORMAT,##__VA_ARGS__);
 #define LOGE(FORMAT,...) __android_log_print(ANDROID_LOG_ERROR,"DLM",FORMAT,##__VA_ARGS__);
 
+//动脑学院
+
 JNIEXPORT void JNICALL Java_com_ad_ffmpeg_VideoUtils_decode
         (JNIEnv * env, jclass clazz, jstring input_jstr, jstring output_jstr)
         {

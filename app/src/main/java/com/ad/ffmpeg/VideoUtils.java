@@ -1,5 +1,7 @@
 package com.ad.ffmpeg;
 
+import android.view.Surface;
+
 public class VideoUtils {
 
     static{
@@ -15,6 +17,10 @@ public class VideoUtils {
         System.loadLibrary("myffmpeg");
     }
 
-    //mp4->yuv420p
+    //解码 mp4->yuv420p
     public native static void decode(String input,String output);
+
+    //渲染
+    public native static void render(String input, Surface surface);
+
 }

@@ -2,25 +2,33 @@
 #include <android/log.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <android/native_window_jni.h>
+#include <android/native_window.h>
 
+//https://chromium.googlesource.com/external/libyuv
+//视频渲染
 
 //编码
-#include "include/libavcodec/avcodec.h"
+#include "include/ffmpeg/libavcodec/avcodec.h"
 //封装格式处理
-#include "include/libavformat/avformat.h"
+#include "include/ffmpeg/libavformat/avformat.h"
 //像素处理
-#include "include/libswscale/swscale.h"
-#include "include/libavutil/avutil.h"
-#include "include/libavutil/frame.h"
+#include "include/ffmpeg/libswscale/swscale.h"
+#include "include/ffmpeg/libavutil/avutil.h"
+#include "include/ffmpeg/libavutil/frame.h"
+
+//yuv->rgb转换库
+#include "include/libyuv/libyuv.h"
 
 #define LOGI(FORMAT,...) __android_log_print(ANDROID_LOG_INFO,"DLM",FORMAT,##__VA_ARGS__);
 #define LOGE(FORMAT,...) __android_log_print(ANDROID_LOG_ERROR,"DLM",FORMAT,##__VA_ARGS__);
 
-JNIEXPORT void JNICALL Java_com_ad_ffmpeg_VideoUtils_decode
-        (JNIEnv * env, jclass clazz, jstring input_jstr, jstring output_jstr)
+JNIEXPORT void JNICALL Java_com_ad_ffmpeg_VideoUtils_render
+        (JNIEnv * env, jclass clazz, jstring input_jstr, jobject surface)
         {
             const char* input = (*env)->GetStringUTFChars(env,input_jstr,NULL);
-            const char* output = (*env)->GetStringUTFChars(env,output_jstr,NULL);
+
 
             //1.注册组件
             av_register_all();
@@ -82,61 +90,56 @@ JNIEXPORT void JNICALL Java_com_ad_ffmpeg_VideoUtils_decode
             AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
 
             //解码数据（像素数据）
-            AVFrame *frame = av_frame_alloc();
-            AVFrame *yuvFrame = av_frame_alloc();
+            AVFrame *yuv_frame = av_frame_alloc();
+            AVFrame *rgb_frame = av_frame_alloc();
 
-            //只有指定了AVFrame的像素格式、画面大小才能真正分配内存
-            //缓冲区分配内存
-            uint8_t *out_buffer  = (uint8_t *)av_malloc(avpicture_get_size(AV_PIX_FMT_YUV420P,avCodecContext->width,avCodecContext->height));
-            //设置YUVframe缓冲区，及格式
-            avpicture_fill((AVPicture *)yuvFrame,out_buffer,AV_PIX_FMT_YUV420P,avCodecContext->width,avCodecContext->height);
 
-            //输出文件
-            FILE* fp_yuv = fopen(output,"wb");
-
-            //用于像素格式转换或缩放
-            struct SwsContext *sws_ctx = sws_getContext(
-                    avCodecContext->width,avCodecContext->height,
-                    avCodecContext-pix_fmt,
-                    avCodecContext->width,avCodecContext->height,
-                    AV_PIX_FMT_YUV420P,
-                    SWS_BILINEAR,NULL,NULL,NULL
-                    );
-
+            //(1)native绘制
+            //窗体
+            ANativeWindow *native_window = ANativeWindow_fromSurface(env,surface);
+            //绘制时的缓冲区
+            ANativeWindow_Buffer outBuffer;
             int len,got_frame,frame_count = 0;
 
-
-            //6.一帧一帧的读取压缩的视屏数据AVPacket
+            //6.一帧一帧的读取压缩的视频数据AVpacket
             while (av_read_frame(pFormatCtx,packet) >= 0)
             {
-                //解码AVPacket->AVFrame
-                len = avcodec_decode_video2(avCodecContext,frame,&got_frame,packet);
-
-                //非零表示正在解码
+                len = avcodec_decode_video2(avCodecContext,yuv_frame,&got_frame,packet);
+                //非零正在解码
                 if (got_frame)
                 {
-                    //frame->yuvFrame(YUV420P)
-                    //转为指定的YUV420P像素帧
-                    sws_scale(sws_ctx,
-                            frame->data,frame->linesize,0,frame->height,
-                            yuvFrame->data,yuvFrame->linesize);
-                    //向YUV文件保存解码之后的帧数据
-                    //AVFrame->YUV
-                    //一个像素包含一个Y
-                    int y_size = avCodecContext->width * avCodecContext->height;
-                    fwrite(yuvFrame->data[0],1,y_size,fp_yuv);
-                    fwrite(yuvFrame->data[1],1,y_size,fp_yuv);
-                    fwrite(yuvFrame->data[2],1,y_size,fp_yuv);
-                    LOGI("解码%帧",frame_count++);
+                    LOGI("正在解码%d帧",frame_count);
+                    //1-1. lock
+                    //设置缓冲区的属性，宽高，像素格式
+                    ANativeWindow_setBuffersGeometry(native_window,avCodecContext->width,avCodecContext->height,WINDOW_FORMAT_RGBA_8888);
+                    ANativeWindow_lock(native_window,&outBuffer,NULL);
+
+                    //1-2.设置rgb_frame的属性，宽高，像素格式，和缓冲区
+                    //rgb_frame缓冲区和outBuffer.bits是同一块内存
+                    avpicture_fill((AVPicture *)rgb_frame,outBuffer.bits,PIX_FMT_RGBA,avCodecContext->width,avCodecContext->height);
+
+                    //yuv->rgba-8888
+                    I420ToABGR(yuv_frame->data[0],yuv_frame->linesize[0],
+                            yuv_frame->data[2],yuv_frame->linesize[2],//调换顺序，颜色显示才正常
+                            yuv_frame->data[1],yuv_frame->linesize[1],
+                            rgb_frame->data[0],rgb_frame->linesize[0],
+                               avCodecContext->width,avCodecContext->height);
+
+                    //1-3.unlock 渲染
+                    ANativeWindow_unlockAndPost(native_window);
+
+                    usleep(1000 * 16);
+
+
                 }
+
                 av_free_packet(packet);
             }
 
-            fclose(fp_yuv);
-            av_frame_free(&frame);
+            ANativeWindow_release(native_window);
+            av_frame_free(&yuv_frame);
             avcodec_close(avCodecContext);
             avformat_free_context(pFormatCtx);
 
             (*env)->ReleaseStringUTFChars(env,input_jstr,input);
-            (*env)->ReleaseStringUTFChars(env,output_jstr,output);
         }
