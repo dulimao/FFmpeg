@@ -17,7 +17,16 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-
+    <Button
+        android:id="@+id/video_audio_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="音视频同步"
+        android:onClick="play"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
     <com.ad.ffmpeg.VideoSurfaceView
         android:id="@+id/video_view"
         android:layout_width="match_parent"

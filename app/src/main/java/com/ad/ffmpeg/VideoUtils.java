@@ -1,7 +1,11 @@
 package com.ad.ffmpeg;
 
 import android.view.Surface;
-
+/**
+*@author 杜立茂
+*@date 2019/2/14 14:50
+*@description 视频解码渲染
+*/
 public class VideoUtils {
 
     static{

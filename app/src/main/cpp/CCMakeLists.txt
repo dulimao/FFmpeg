@@ -1,0 +1,125 @@
+# For more information about using CMake with Android Studio, read the
+# documentation: https://d.android.com/studio/projects/add-native-code.html
+
+# Sets the minimum version of CMake required to build the native library.
+
+cmake_minimum_required(VERSION 3.4.1)
+
+# Creates and names a library, sets it as either STATIC
+# or SHARED, and provides the relative paths to its source code.
+# You can define multiple libraries, and CMake builds them for you.
+# Gradle automatically packages shared libraries with your APK.
+
+add_library(
+        player
+        SHARED
+        player.c)
+
+#1
+add_library( avcodec
+        SHARED
+        IMPORTED )
+set_target_properties( avcodec
+        PROPERTIES IMPORTED_LOCATION
+        libavcodec-56.so)
+#2
+add_library( avdevice
+        SHARED
+        IMPORTED )
+set_target_properties( avdevice
+        PROPERTIES IMPORTED_LOCATION
+        libavdevice-56.so)
+#3
+add_library( avfilter
+        SHARED
+        IMPORTED )
+set_target_properties( avfilter
+        PROPERTIES IMPORTED_LOCATION
+        libavfilter-5.so)
+#4
+add_library( avformat
+        SHARED
+        IMPORTED )
+set_target_properties( avformat
+        PROPERTIES IMPORTED_LOCATION
+        libavformat-56.so)
+#5
+add_library( avutil
+        SHARED
+        IMPORTED )
+set_target_properties( avutil
+        PROPERTIES IMPORTED_LOCATION
+        libavutil-54.so)
+#6
+add_library( postproc
+        SHARED
+        IMPORTED )
+set_target_properties( postproc
+        PROPERTIES IMPORTED_LOCATION
+        libpostproc-53.so)
+#7
+add_library( swresample
+        SHARED
+        IMPORTED )
+set_target_properties( swresample
+        PROPERTIES IMPORTED_LOCATION
+        libswresample-1.so)
+#8
+add_library( swscale
+        SHARED
+        IMPORTED )
+set_target_properties( swscale
+        PROPERTIES IMPORTED_LOCATION
+        libswscale-3.so)
+
+#9
+add_library( yuv
+        SHARED
+        IMPORTED )
+set_target_properties( yuv
+        PROPERTIES IMPORTED_LOCATION
+        libyuv.so)
+
+#SET(SOURCE_FILES   #设置变量，表示所有的源文件
+#        player.c com_ad_ffmpeg_VideoAndAudioPlayer.h
+#        )
+
+
+# Searches for a specified prebuilt library and stores the path as a
+# variable. Because CMake includes system libraries in the search path by
+# default, you only need to specify the name of the public NDK library
+# you want to add. CMake verifies that the library exists before
+# completing its build.
+
+find_library(
+        log-lib
+        log)
+
+
+#include_directories(include/ffmpeg)
+#include_directories(include/libyuv)
+
+# Specifies libraries CMake should link to your target library. You
+# can link multiple libraries, such as libraries you define in this
+# build script, prebuilt third-party libraries, or system libraries.
+
+target_link_libraries( # Specifies the target library.
+        player
+
+ avcodec
+        avdevice
+        avfilter
+        avformat
+        avutil
+        postproc
+        swresample
+        swscale
+        yuv
+
+        ${log-lib})
+
+#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI})
+
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+
+#set(distribution_DIR ${CMAKE_SOURCE_DIR}/../../../../libs)

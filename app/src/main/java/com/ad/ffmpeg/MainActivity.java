@@ -13,7 +13,7 @@ import java.io.File;
 public class MainActivity extends AppCompatActivity {
 
 
-    private SurfaceView mSurfaceView;
+    private VideoSurfaceView mSurfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +23,23 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+
+    //音视频同步
+    private void play(View view){
+        String input = new File(Environment.getExternalStorageDirectory(),"/input.mp4").getAbsolutePath();
+        VideoAndAudioPlayer.play(input,mSurfaceView.getHolder().getSurface());
+    }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * 解码
